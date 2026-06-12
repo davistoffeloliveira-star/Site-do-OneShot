@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OneShot — Você só tem uma chance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        abyss: '#06060e',
+                        void: '#0a0a18',
+                        deep: '#111128',
+                        purple: {
+                            dark: '#1a0a2e',
+                            mid: '#2d1b4e',
+                            light: '#4a1a8a',
+                            glow: '#7c3aed',
+                        },
+                        night: '#0d1b2a',
+                        neon: '#e8d44d',
+                        phosphor: '#f5e642',
+                        amber: '#f0c040',
+                        lamp: '#ffe066',
+                    },
+                    fontFamily: {
+                        mono: ['Space Mono', 'monospace'],
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* === BASE === */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html {
+            scroll-behavior: smooth;
+            scrollbar-width: thin;
+            scrollbar-color: #2d1b4e #06060e;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #06060e; }
+        ::-webkit-scrollbar-thumb { background: #2d1b4e; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4a1a8a; }
+
+        body {
+            background-color: #06060e;
+            color: #c4b5d4;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* === CUSTOM CURSOR GLOW === */
+        .cursor-glow {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(245,230,66,0.06) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.3s ease;
+        }
+
+        /* === LAMP GLOW ANIMATION === */
+        @keyframes lampPulse {
+            0%, 100% { 
+                filter: drop-shadow(0 0 8px rgba(245,230,66,0.6)) drop-shadow(0 0 30px rgba(245,230,66,0.3));
+                opacity: 1;
+            }
+            50% { 
+                filter: drop-shadow(0 0 15px rgba(245,230,66,0.9)) drop-shadow(0 0 50px rgba(245,230,66,0.5));
+                opacity: 0.85;
+            }
+        }
+
+        .lamp-glow {
+            animation: lampPulse 3s ease-in-out infinite;
+        }
+
+        /* === FLOATING PARTICLES === */
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: floatUp linear infinite;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) translateX(0) scale(1);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(50px) scale(0.3);
+                opacity: 0;
+            }
+        }
+
+        /* === GLITCH TEXT EFFECT === */
+        @keyframes glitch {
+            0%, 100% { text-shadow: none; }
+            20% { text-shadow: -2px 0 #7c3aed, 2px 0 #f5e642; }
+            40% { text-shadow: 2px 0 #7c3aed, -2px 0 #f5e642; }
+            60% { text-shadow: -1px 0 #7c3aed, 1px 0 #f5e642; }
+            80% { text-shadow: 1px 0 #7c3aed, -1px 0 #f5e642; }
+        }
+
+        .glitch-hover:hover {
+            animation: glitch 0.3s ease-in-out;
+        }
+
+        /* === SCANLINE OVERLAY === */
+        .scanlines::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.05) 2px,
+                rgba(0,0,0,0.05) 4px
+            );
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* === GLASS CARD === */
+        .glass-card {
+            background: linear-gradient(135deg, rgba(26,10,46,0.6) 0%, rgba(13,27,42,0.4) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(124,58,237,0.15);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(245,230,66,0.4);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 
+                0 20px 60px rgba(124,58,237,0.2),
+                0 0 30px rgba(245,230,66,0.08),
+                inset 0 1px 0 rgba(245,230,66,0.1);
+        }
+
+        /* === WORLD CARDS === */
+        .world-card {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .world-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, transparent 30%, rgba(6,6,14,0.95) 100%);
+            z-index: 1;
+            transition: all 0.5s ease;
+        }
+
+        .world-card:hover::before {
+            background: linear-gradient(180deg, transparent 10%, rgba(6,6,14,0.8) 100%);
+        }
+
+        .world-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 25px 80px rgba(0,0,0,0.6);
+        }
+
+        .world-card:hover .world-img {
+            transform: scale(1.1);
+        }
+
+        .world-img {
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .world-card .world-tag {
+            transition: all 0.4s ease;
+        }
+
+        .world-card:hover .world-tag {
+            background-color: rgba(245,230,66,0.2);
+            color: #f5e642;
+            border-color: rgba(245,230,66,0.4);
+        }
+
+        /* === CTA BUTTON === */
+        .cta-btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .cta-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(245,230,66,0.15);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+
+        .cta-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .cta-btn:hover {
+            box-shadow: 0 0 25px rgba(245,230,66,0.3), 0 0 60px rgba(245,230,66,0.1);
+            border-color: #f5e642;
+            color: #f5e642;
+        }
+
+        /* === NAV LINKS === */
+        .nav-link {
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: #f5e642;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 8px rgba(245,230,66,0.5);
+        }
+
+        .nav-link:hover {
+            color: #f5e642;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
+
+        /* === TERMINAL TEXT === */
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .terminal-cursor::after {
+            content: '█';
+            animation: blink 1s step-end infinite;
+            color: #f5e642;
+            margin-left: 2px;
+        }
+
+        @keyframes typewriter {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        /* === REVEAL ANIMATIONS === */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal-delay-1 { transition-delay: 0.1s; }
+        .reveal-delay-2 { transition-delay: 0.2s; }
+        .reveal-delay-3 { transition-delay: 0.3s; }
+        .reveal-delay-4 { transition-delay: 0.4s; }
+
+        /* === SECTION DIVIDER === */
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(124,58,237,0.4), rgba(245,230,66,0.3), rgba(124,58,237,0.4), transparent);
+        }
+
+        /* === FLOATING LAMP IN HERO === */
+        @keyframes floatLamp {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-15px) rotate(1deg); }
+            75% { transform: translateY(10px) rotate(-1deg); }
+        }
+
+        .float-lamp {
+            animation: floatLamp 6s ease-in-out infinite;
+        }
+
+        /* === MOBILE NAV === */
+        .mobile-menu {
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .mobile-menu.open {
+            transform: translateX(0);
+        }
+
+        /* === CHARACTER ICON CONTAINER === */
+        .char-icon {
+            position: relative;
+        }
+
+        .char-icon::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 2px solid rgba(245,230,66,0.1);
+            transition: all 0.4s ease;
+        }
+
+        .glass-card:hover .char-icon::after {
+            border-color: rgba(245,230,66,0.4);
+            box-shadow: 0 0 15px rgba(245,230,66,0.15);
+        }
+
+        /* === HERO BACKGROUND GRADIENT === */
+        .hero-bg {
+            background: 
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(124,58,237,0.15) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 70% 50%, rgba(26,10,46,0.3) 0%, transparent 50%),
+                radial-gradient(ellipse 40% 30% at 20% 80%, rgba(13,27,42,0.3) 0%, transparent 50%);
+        }
+
+        /* === NOISE TEXTURE OVERLAY === */
+        .noise-overlay::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 9998;
+        }
+
+        /* === TYPING EFFECT === */
+        #typewriter-text {
+            display: inline;
+        }
+    </style>
+</head>
+<body class="noise-overlay">
+
+    <!-- Cursor Glow -->
+    <div id="cursorGlow" class="cursor-glow hidden lg:block" style="opacity:0;"></div>
+
+    <!-- Floating Particles Container -->
+    <div id="particles" class="fixed inset-0 pointer-events-none z-0"></div>
+
+    <!-- Navigation -->
+    <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-500">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <!-- Logo -->
+            <a href="#home" class="flex items-center gap-2 group">
+                <div class="w-8 h-8 rounded-sm bg-neon/10 border border-neon/30 flex items-center justify-center group-hover:bg-neon/20 transition-all duration-300">
+                    <i data-lucide="lightbulb" class="w-4 h-4 text-neon"></i>
+                </div>
+                <span class="font-mono font-bold text-white text-sm tracking-wider">ONESHOT</span>
+            </a>
+
+            <!-- Desktop Nav Links -->
+            <div class="hidden md:flex items-center gap-8">
+                <a href="#home" class="nav-link text-sm font-medium text-gray-400 tracking-wide">HOME</a>
+                <a href="#characters" class="nav-link text-sm font-medium text-gray-400 tracking-wide">PERSONAGENS</a>
+                <a href="#world" class="nav-link text-sm font-medium text-gray-400 tracking-wide">MUNDO</a>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <button id="menuBtn" class="md:hidden text-gray-400 hover:text-neon transition-colors" aria-label="Menu">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <!-- Navbar bottom border glow -->
+        <div id="navBorder" class="h-px w-full bg-gradient-to-r from-transparent via-purple-glow/20 to-transparent transition-opacity duration-500"></div>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div id="mobileMenu" class="mobile-menu fixed inset-0 z-40 bg-abyss/98 backdrop-blur-xl flex flex-col items-center justify-center gap-8">
+        <button id="closeMenuBtn" class="absolute top-6 right-6 text-gray-400 hover:text-neon transition-colors">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+        <a href="#home" class="mobile-nav-link text-2xl font-mono font-bold text-gray-300 hover:text-neon transition-colors">HOME</a>
+        <a href="#characters" class="mobile-nav-link text-2xl font-mono font-bold text-gray-300 hover:text-neon transition-colors">PERSONAGENS</a>
+        <a href="#world" class="mobile-nav-link text-2xl font-mono font-bold text-gray-300 hover:text-neon transition-colors">MUNDO</a>
+    </div>
+
+    <!-- ============================== -->
+    <!-- HERO SECTION -->
+    <!-- ============================== -->
+    <section id="home" class="relative min-h-screen flex items-center justify-center hero-bg overflow-hidden">
+        <!-- Ambient glow orbs -->
+        <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-glow/5 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-80 h-80 bg-neon/3 rounded-full blur-3xl"></div>
+
+        <div class="relative z-10 max-w-5xl mx-auto px-6 text-center pt-24 pb-16">
+            <!-- Floating Lamp Icon -->
+            <div class="float-lamp lamp-glow mb-8 inline-flex items-center justify-center">
+                <div class="w-20 h-20 md:w-28 md:h-28 rounded-full bg-gradient-to-br from-neon/20 via-amber/10 to-transparent border border-neon/20 flex items-center justify-center">
+                    <i data-lucide="sun" class="w-10 h-10 md:w-14 md:h-14 text-neon"></i>
+                </div>
+            </div>
+
+            <!-- Title -->
+            <h1 class="reveal text-4xl md:text-6xl lg:text-7xl font-mono font-bold tracking-tight mb-2">
+                <span class="text-white">One</span><span class="text-neon">Shot</span>
+            </h1>
+            <p class="reveal reveal-delay-1 font-mono text-lg md:text-xl text-purple-glow/80 tracking-[0.3em] mb-8 uppercase">
+                Você só tem uma chance
+            </p>
+
+            <!-- Terminal-style divider -->
+            <div class="reveal reveal-delay-2 flex items-center justify-center gap-3 mb-8">
+                <div class="h-px w-12 bg-gradient-to-r from-transparent to-purple-glow/50"></div>
+                <span class="text-xs font-mono text-purple-glow/50 tracking-widest">~/oneshot$</span>
+                <div class="h-px w-12 bg-gradient-to-l from-transparent to-purple-glow/50"></div>
+            </div>
+
+            <!-- Description -->
+            <p class="reveal reveal-delay-2 text-base md:text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed mb-10">
+                <span class="text-gray-300">OneShot</span> é um jogo de aventura e quebra-cabeças surrealista com elementos metaficcionais, onde o jogador deve guiar uma criança chamada <span class="text-neon/90">Niko</span> por um mundo agonizante e sem sol, com o objetivo de restaurar a luz usando uma <span class="text-neon/90">lâmpada sagrada</span>. O jogo é famoso por <span class="text-purple-glow">quebrar a quarta parede</span>, interagindo diretamente com o sistema operacional do jogador.
+            </p>
+
+            <!-- Typing terminal line -->
+            <div class="reveal reveal-delay-3 mb-10 font-mono text-sm text-purple-glow/60">
+                <span class="text-gray-500">$</span> <span id="typewriter-text"></span><span class="terminal-cursor"></span>
+            </div>
+
+            <!-- CTA Button -->
+            <div class="reveal reveal-delay-4">
+                <a href="#characters" class="cta-btn inline-flex items-center gap-3 px-8 py-4 border border-purple-glow/40 rounded-sm text-sm font-mono font-medium text-gray-300 tracking-wider uppercase hover:text-neon">
+                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                    Conheça os Personagens
+                </a>
+            </div>
+        </div>
+
+        <!-- Scroll indicator -->
+        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-40">
+            <span class="text-xs font-mono tracking-widest text-gray-500">SCROLL</span>
+            <div class="w-px h-8 bg-gradient-to-b from-purple-glow/50 to-transparent"></div>
+        </div>
+    </section>
+
+    <!-- Divider -->
+    <div class="section-divider"></div>
+
+    <!-- ============================== -->
+    <!-- CHARACTERS SECTION -->
+    <!-- ============================== -->
+    <section id="characters" class="relative py-24 md:py-32">
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-purple-glow/3 rounded-full blur-3xl"></div>
+
+        <div class="relative z-10 max-w-6xl mx-auto px-6">
+            <!-- Section Header -->
+            <div class="text-center mb-16">
+                <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 rounded-sm border border-purple-glow/20 bg-purple-glow/5 mb-6">
+                    <i data-lucide="users" class="w-3.5 h-3.5 text-purple-glow"></i>
+                    <span class="text-xs font-mono tracking-widest text-purple-glow uppercase">Personagens</span>
+                </div>
+                <h2 class="reveal reveal-delay-1 text-3xl md:text-4xl lg:text-5xl font-mono font-bold text-white mb-4">
+                    Quem <span class="text-neon">habita</span> este mundo
+                </h2>
+                <p class="reveal reveal-delay-2 text-gray-500 max-w-lg mx-auto text-sm md:text-base">
+                    Cada personagem carrega um pedaço da verdade sobre este mundo que se apaga.
+                </p>
+            </div>
+
+            <!-- Character Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+
+                <!-- Niko -->
+                <div class="reveal reveal-delay-1 glass-card rounded-lg p-8 text-center group">
+                    <div class="char-icon w-24 h-24 mx-auto mb-6 rounded-full overflow-hidden border-2 border-purple-glow/20 group-hover:border-neon/40 transition-colors duration-500">
+                        <img src="https://static.wikia.nocookie.net/oneshot/images/0/02/Niko.png/revision/latest?cb=20170401115609" alt="Niko" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    </div>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-sm bg-neon/10 border border-neon/20 mb-4">
+                        <i data-lucide="heart" class="w-3 h-3 text-neon"></i>
+                        <span class="text-xs font-mono text-neon tracking-wider">PROTAGONISTA</span>
+                    </div>
+                    <h3 class="text-xl font-mono font-bold text-white mb-3 group-hover:text-neon transition-colors duration-300">Niko</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed">
+                        A carismática e gentil criança de olhos de gato que foi escolhida para ser o "Salvador" do mundo. Carrega a lâmpada sagrada e adora panquecas.
+                    </p>
+                    <div class="mt-6 pt-4 border-t border-purple-glow/10">
+                        <div class="flex items-center justify-center gap-4 text-xs text-gray-500">
+                            <span class="flex items-center gap-1">
+                                <i data-lucide="lamp-desk" class="w-3 h-3 text-neon/60"></i>
+                                Portador da Luz
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <i data-lucide="cat" class="w-3 h-3 text-purple-glow/60"></i>
+                                Olhos de Gato
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- O Jogador -->
+                <div class="reveal reveal-delay-2 glass-card rounded-lg p-8 text-center group">
+                    <div class="char-icon w-24 h-24 mx-auto mb-6 rounded-full overflow-hidden border-2 border-purple-glow/20 group-hover:border-neon/40 transition-colors duration-500">
+                        <img src="https://art.ngfiles.com/images/3462000/3462711_personunly_grunt-from-madness-combat.jpg?f1694912133" alt="O Jogador" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    </div>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-sm bg-purple-glow/10 border border-purple-glow/20 mb-4">
+                        <i data-lucide="monitor" class="w-3 h-3 text-purple-glow"></i>
+                        <span class="text-xs font-mono text-purple-glow tracking-wider">ENTIDADE GUIA</span>
+                    </div>
+                    <h3 class="text-xl font-mono font-bold text-white mb-3 group-hover:text-neon transition-colors duration-300">O Jogador</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed">
+                        Uma entidade divina que se comunica diretamente com Niko e guia seus passos. O jogo reconhece o jogador pelo nome de usuário do computador.
+                    </p>
+                    <div class="mt-6 pt-4 border-t border-purple-glow/10">
+                        <div class="flex items-center justify-center gap-4 text-xs text-gray-500">
+                            <span class="flex items-center gap-1">
+                                <i data-lucide="eye" class="w-3 h-3 text-purple-glow/60"></i>
+                                Onisciente
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <i data-lucide="hand" class="w-3 h-3 text-neon/60"></i>
+                                Guia Divino
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- A Entidade -->
+                <div class="reveal reveal-delay-3 glass-card rounded-lg p-8 text-center group">
+                    <div class="char-icon w-24 h-24 mx-auto mb-6 rounded-full overflow-hidden border-2 border-purple-glow/20 group-hover:border-neon/40 transition-colors duration-500">
+                        <img src="https://static.wikia.nocookie.net/oneshot/images/1/17/PC_on.png/revision/latest?cb=20170821082850" alt="A Entidade" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    </div>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-sm bg-red-500/10 border border-red-500/20 mb-4">
+                        <i data-lucide="terminal" class="w-3 h-3 text-red-400"></i>
+                        <span class="text-xs font-mono text-red-400 tracking-wider">DESCONHECIDO</span>
+                    </div>
+                    <h3 class="text-xl font-mono font-bold text-white mb-3 group-hover:text-neon transition-colors duration-300">A Entidade</h3>
+                    <p class="text-sm text-gray-400 leading-relaxed">
+                        Uma voz misteriosa que fala através de terminais de computador antigos, frequentemente tentando desencorajar ou alertar o jogador sobre os perigos do mundo.
+                    </p>
+                    <div class="mt-6 pt-4 border-t border-purple-glow/10">
+                        <div class="flex items-center justify-center gap-4 text-xs text-gray-500">
+                            <span class="flex items-center gap-1">
+                                <i data-lucide="message-square" class="w-3 h-3 text-red-400/60"></i>
+                                Terminal
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <i data-lucide="alert-triangle" class="w-3 h-3 text-red-400/60"></i>
+                                Advertência
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Divider -->
+    <div class="section-divider"></div>
+
+    <!-- ============================== -->
+    <!-- WORLD AREAS SECTION -->
+    <!-- ============================== -->
+    <section id="world" class="relative py-24 md:py-32">
+        <div class="absolute bottom-0 right-0 w-[500px] h-[500px] bg-neon/2 rounded-full blur-3xl"></div>
+
+        <div class="relative z-10 max-w-6xl mx-auto px-6">
+            <!-- Section Header -->
+            <div class="text-center mb-16">
+                <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 rounded-sm border border-neon/20 bg-neon/5 mb-6">
+                    <i data-lucide="map" class="w-3.5 h-3.5 text-neon"></i>
+                    <span class="text-xs font-mono tracking-widest text-neon uppercase">Regiões</span>
+                </div>
+                <h2 class="reveal reveal-delay-1 text-3xl md:text-4xl lg:text-5xl font-mono font-bold text-white mb-4">
+                    As áreas do <span class="text-neon">mundo</span>
+                </h2>
+                <p class="reveal reveal-delay-2 text-gray-500 max-w-lg mx-auto text-sm md:text-base">
+                    Três regiões distintas. Uma jornada rumo à Torre. E o sol que nunca nasce.
+                </p>
+            </div>
+
+            <!-- World Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+
+                <!-- The Barrens -->
+                <div class="reveal reveal-delay-1 world-card rounded-lg h-[420px] md:h-[480px] border border-purple-glow/10 group cursor-default">
+                    <img src="http://static.photos/industry/640x360/15" alt="The Barrens" class="world-img absolute inset-0 w-full h-full object-cover">
+                    <div class="absolute inset-0 z-[2] flex flex-col justify-end p-6 md:p-8">
+                        <div class="mb-4">
+                            <span class="world-tag inline-block px-3 py-1 text-xs font-mono tracking-wider border border-gray-600/50 text-gray-400 rounded-sm bg-black/30">ZONA 01</span>
+                        </div>
+                        <h3 class="text-xl md:text-2xl font-mono font-bold text-white mb-2 group-hover:text-neon transition-colors duration-300">The Barrens</h3>
+                        <p class="text-xs font-mono text-neon/50 tracking-wider mb-3 italic">Os Ermos</p>
+                        <p class="text-sm text-gray-400 leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity duration-500">
+                            Uma área desolada, industrial e abandonada, cercada por águas ácidas e cheia de robôs desativados. É onde Niko acorda.
+                        </p>
+                        <div class="flex items-center gap-3 mt-4">
+                            <span class="flex items-center gap-1 text-xs text-gray-500">
+                                <i data-lucide="cloud-off" class="w-3 h-3"></i>
+                                Sem Sol
+                            </span>
+                            <span class="flex items-center gap-1 text-xs text-gray-500">
+                                <i data-lucide="bot" class="w-3 h-3"></i>
+                                Robôs
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- The Glen -->
+                <div class="reveal reveal-delay-2 world-card rounded-lg h-[420px] md:h-[480px] border border-purple-glow/10 group cursor-default">
+                    <img src="http://static.photos/nature/640x360/33" alt="The Glen" class="world-img absolute inset-0 w-full h-full object-cover">
+                    <div class="absolute inset-0 z-[2] flex flex-col justify-end p-6 md:p-8">
+                        <div class="mb-4">
+                            <span class="world-tag inline-block px-3 py-1 text-xs font-mono tracking-wider border border-gray-600/50 text-gray-400 rounded-sm bg-black/30">ZONA 02</span>
+                        </div>
+                        <h3 class="text-xl md:text-2xl font-mono font-bold text-white mb-2 group-hover:text-neon transition-colors duration-300">The Glen</h3>
+                        <p class="text-xs font-mono text-green-400/50 tracking-wider mb-3 italic">O Vale</p>
+                        <p class="text-sm text-gray-400 leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity duration-500">
+                            Uma zona mais viva, coberta de vegetação, ruínas de pedra e rios. É habitada por criaturas da floresta e pessoas-pássaro.
+                        </p>
+                        <div class="flex items-center gap-3 mt-4">
+                            <span class="flex items-center gap-1 text-xs text-gray-500">
+                                <i data-lucide="trees" class="w-3 h-3"></i>
+                                Natureza
+                            </span>
+                            <span class="flex items-center gap-1 text-xs text-gray-500">
+                                <i data-lucide="feather" class="w-3 h-3"></i>
+                                Pássaros
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- The Refuge -->
+                <div class="reveal reveal-delay-3 world-card rounded-lg h-[420px] md:h-[480px] border border-purple-glow/10 group cursor-default">
+                    <img src="http://static.photos/cityscape/640x360/55" alt="The Refuge" class="world-img absolute inset-0 w-full h-full object-cover">
+                    <div class="absolute inset-0 z-[2] flex flex-col justify-end p-6 md:p-8">
+                        <div class="mb-4">
+                            <span class="world-tag inline-block px-3 py-1 text-xs font-mono tracking-wider border border-gray-600/50 text-gray-400 rounded-sm bg-black/30">ZONA 03</span>
+                        </div>
+                        <h3 class="text-xl md:text-2xl font-mono font-bold text-white mb-2 group-hover:text-neon transition-colors duration-300">The Refuge</h3>
+                        <p class="text-xs font-mono text-blue-400/50 tracking-wider mb-3 italic">O Refúgio</p>
+                        <p class="text-sm text-gray-400 leading-relaxed opacity-80 group-hover:opacity-100 transition-opacity duration-500">
+                            Uma metrópole vertical e tecnológica que circunda a Torre. Dividida entre a superfície urbana e os subúrbios subterrâneos. É o último bastião de civilização.
+                        </p>
+                        <div class="flex items-center gap-3 mt-4">
+                            <span class="flex items-center gap-1 text-xs text-gray-500">
+                                <i data-lucide="building" class="w-3 h-3"></i>
+                                Metrópole
+                            </span>
+                            <span class="flex items-center gap-1 text-xs text-gray-500">
+                                <i data-lucide="layers" class="w-3 h-3"></i>
+                                Subterrâneo
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Bottom quote -->
+            <div class="reveal mt-12 text-center">
+                <p class="font-mono text-sm text-gray-600 italic">
+                    "Eles dizem que a Torre é o único caminho para restaurar o sol..."
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Divider -->
+    <div class="section-divider"></div>
+
+    <!-- ============================== -->
+    <!-- FOOTER -->
+    <!-- ============================== -->
+    <footer class="relative py-16 md:py-20">
+        <div class="absolute inset-0 bg-gradient-to-t from-purple-dark/20 to-transparent"></div>
+
+        <div class="relative z-10 max-w-6xl mx-auto px-6">
+            <!-- Main Footer Content -->
+            <div class="flex flex-col md:flex-row items-center justify-between gap-8 mb-12">
+                <!-- Logo -->
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-sm bg-neon/10 border border-neon/20 flex items-center justify-center">
+                        <i data-lucide="sun" class="w-5 h-5 text-neon"></i>
+                    </div>
+                    <div>
+                        <span class="font-mono font-bold text-white text-lg tracking-wider">ONESHOT</span>
+                        <p class="text-xs text-gray-600 font-mono">Um jogo pela Future Cat & Eliza</p>
+                    </div>
+                </div>
+
+                <!-- Social Links -->
+                <div class="flex items-center gap-4">
+                    <a href="#" class="w-10 h-10 rounded-sm border border-purple-glow/20 bg-purple-glow/5 flex items-center justify-center text-gray-500 hover:text-neon hover:border-neon/40 hover:bg-neon/10 transition-all duration-300" aria-label="Steam">
+                        <i data-lucide="gamepad-2" class="w-4 h-4"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-sm border border-purple-glow/20 bg-purple-glow/5 flex items-center justify-center text-gray-500 hover:text-neon hover:border-neon/40 hover:bg-neon/10 transition-all duration-300" aria-label="Twitter">
+                        <i data-lucide="twitter" class="w-4 h-4"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-sm border border-purple-glow/20 bg-purple-glow/5 flex items-center justify-center text-gray-500 hover:text-neon hover:border-neon/40 hover:bg-neon/10 transition-all duration-300" aria-label="Discord">
+                        <i data-lucide="message-circle" class="w-4 h-4"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-sm border border-purple-glow/20 bg-purple-glow/5 flex items-center justify-center text-gray-500 hover:text-neon hover:border-neon/40 hover:bg-neon/10 transition-all duration-300" aria-label="Reddit">
+                        <i data-lucide="at-sign" class="w-4 h-4"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="h-px w-full bg-gradient-to-r from-transparent via-purple-glow/15 to-transparent mb-8"></div>
+
+            <!-- Bottom Bar -->
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <p class="text-xs text-gray-600 font-mono">
+                    © 2024 — Fan-made tribute. OneShot © Future Cat LLC.
+                </p>
+                <p class="font-mono text-sm text-neon/50 italic tracking-wide glitch-hover cursor-default">
+                    "O mundo sabe que você existe."
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ============================== -->
+    <!-- SCRIPTS -->
+    <!-- ============================== -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // === CURSOR GLOW ===
+        const cursorGlow = document.getElementById('cursorGlow');
+        let mouseX = 0, mouseY = 0;
+        let glowX = 0, glowY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursorGlow.style.opacity = '1';
+        });
+
+        document.addEventListener('mouseleave', () => {
+            cursorGlow.style.opacity = '0';
+        });
+
+        function animateCursor() {
+            glowX += (mouseX - glowX) * 0.08;
+            glowY += (mouseY - glowY) * 0.08;
+            cursorGlow.style.left = glowX + 'px';
+            cursorGlow.style.top = glowY + 'px';
+            requestAnimationFrame(animateCursor);
+        }
+        animateCursor();
+
+        // === FLOATING PARTICLES ===
+        const particlesContainer = document.getElementById('particles');
+        const particleColors = [
+            'rgba(245,230,66,0.4)',
+            'rgba(245,230,66,0.2)',
+            'rgba(124,58,237,0.3)',
+            'rgba(124,58,237,0.15)',
+            'rgba(255,255,255,0.15)',
+        ];
+
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            const size = Math.random() * 3 + 1;
+            const color = particleColors[Math.floor(Math.random() * particleColors.length)];
+            const left = Math.random() * 100;
+            const duration = Math.random() * 15 + 10;
+            const delay = Math.random() * 5;
+
+            particle.style.cssText = `
+                width: ${size}px;
+                height: ${size}px;
+                background: ${color};
+                left: ${left}%;
+                bottom: -10px;
+                animation-duration: ${duration}s;
+                animation-delay: ${delay}s;
+            `;
+
+            particlesContainer.appendChild(particle);
+
+            // Remove after animation
+            setTimeout(() => {
+                if (particle.parentNode) {
+                    particle.remove();
+                }
+            }, (duration + delay) * 1000);
+        }
+
+        // Create initial particles
+        for (let i = 0; i < 20; i++) {
+            createParticle();
+        }
+
+        // Keep creating particles
+        setInterval(() => {
+            if (particlesContainer.children.length < 30) {
+                createParticle();
+            }
+        }, 2000);
+
+        // === NAVBAR BACKGROUND ON SCROLL ===
+        const navbar = document.getElementById('navbar');
+        const navBorder = document.getElementById('navBorder');
+
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.style.backgroundColor = 'rgba(6,6,14,0.9)';
+                navbar.style.backdropFilter = 'blur(12px)';
+                navbar.style.webkitBackdropFilter = 'blur(12px)';
+                navBorder.style.opacity = '1';
+            } else {
+                navbar.style.backgroundColor = 'transparent';
+                navbar.style.backdropFilter = 'none';
+                navbar.style.webkitBackdropFilter = 'none';
+                navBorder.style.opacity = '0.5';
+            }
+        });
+
+        // === MOBILE MENU ===
+        const menuBtn = document.getElementById('menuBtn');
+        const closeMenuBtn = document.getElementById('closeMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+
+        menuBtn.addEventListener('click', () => {
+            mobileMenu.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        });
+
+        closeMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.remove('open');
+            document.body.style.overflow = '';
+        });
+
+        mobileNavLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.remove('open');
+                document.body.style.overflow = '';
+            });
+        });
+
+        // === SCROLL REVEAL ===
+        const revealElements = document.querySelectorAll('.reveal');
+
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        });
+
+        revealElements.forEach(el => revealObserver.observe(el));
+
+        // === TYPEWRITER EFFECT ===
+        const typewriterText = document.getElementById('typewriter-text');
+        const phrases = [
+            'guia Niko até a Torre...',
+            'restaure a luz do mundo...',
+            'não se esqueça: você só tem uma chance.',
+            'o mundo sabe que você existe.',
+            'confie na lâmpada.',
+        ];
+
+        let phraseIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        let typeSpeed = 80;
+
+        function typewrite() {
+            const currentPhrase = phrases[phraseIndex];
+
+            if (!isDeleting) {
+                typewriterText.textContent = currentPhrase.substring(0, charIndex + 1);
+                charIndex++;
+
+                if (charIndex === currentPhrase.length) {
+                    isDeleting = true;
+                    typeSpeed = 2500; // Pause before deleting
+                } else {
+                    typeSpeed = 60 + Math.random() * 40;
+                }
+            } else {
+                typewriterText.textContent = currentPhrase.substring(0, charIndex - 1);
+                charIndex--;
+
+                if (charIndex === 0) {
+                    isDeleting = false;
+                    phraseIndex = (phraseIndex + 1) % phrases.length;
+                    typeSpeed = 400;
+                } else {
+                    typeSpeed = 30;
+                }
+            }
+
+            setTimeout(typewrite, typeSpeed);
+        }
+
+        // Start typewriter after a short delay
+        setTimeout(typewrite, 1500);
+
+        // === SMOOTH SCROLL FOR ANCHOR LINKS ===
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const offsetTop = target.offsetTop - 70;
+                    window.scrollTo({
+                        top: offsetTop,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // === ACTIVE NAV LINK HIGHLIGHT ===
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 100;
+                if (window.scrollY >= sectionTop) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('text-neon');
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.classList.add('text-neon');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
